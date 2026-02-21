@@ -4,4 +4,4 @@ pylint==3.2.7
 black==24.10.0
 ipython==8.28.0
 transformers==4.44.2
-torch==2.4.1
+torch==2.10.0
