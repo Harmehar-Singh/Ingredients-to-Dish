@@ -1,3 +1,4 @@
+[![Sync to Hugging Face Space](https://github.com/Harmehar-Singh/Ingredients-to-Dish/actions/workflows/sync_to_hf_space.yml/badge.svg)](https://github.com/Harmehar-Singh/Ingredients-to-Dish/actions/workflows/sync_to_hf_space.yml)
 ---
 title: Ingredients to Dish Recipe Generator
 emoji: 🍽️
