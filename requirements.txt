@@ -9,3 +9,4 @@ flax
 jax
 jaxlib
 tensorflow
+torch
