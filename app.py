@@ -1,9 +1,9 @@
-from transformers import FlaxAutoModelForSeq2SeqLM, AutoTokenizer
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 import gradio as gr
 
 MODEL_NAME_OR_PATH = "flax-community/t5-recipe-generation"
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME_OR_PATH, use_fast=True)  # [web:17]
-model = FlaxAutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME_OR_PATH)  # [web:17]
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME_OR_PATH, use_fast=True)  # web:7
+model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME_OR_PATH)  # web:7
 
 prefix = "items: "
 generation_kwargs = {
@@ -16,22 +16,22 @@ generation_kwargs = {
 }
 
 special_tokens = tokenizer.all_special_tokens
-tokens_map = {"<sep>": "--", "<section>": "\n"}  # [web:17]
+tokens_map = {"<sep>": "--", "<section>": "\n"}  # web:7
 
 
-def skip_special_tokens(text, special_tokens):
-    for token in special_tokens:
+def skip_special_tokens(text: str, special_tokens_list):
+    for token in special_tokens_list:
         text = text.replace(token, "")
     return text
 
 
-def target_postprocessing(texts, special_tokens):
+def target_postprocessing(texts, special_tokens_list):
     if not isinstance(texts, list):
         texts = [texts]
 
     new_texts = []
     for text in texts:
-        text = skip_special_tokens(text, special_tokens)
+        text = skip_special_tokens(text, special_tokens_list)
         for k, v in tokens_map.items():
             text = text.replace(k, v)
         new_texts.append(text)
@@ -41,25 +41,22 @@ def target_postprocessing(texts, special_tokens):
 def generation_function(texts):
     _inputs = texts if isinstance(texts, list) else [texts]
     inputs = [prefix + inp for inp in _inputs]
-    inputs = tokenizer(
+
+    encodings = tokenizer(
         inputs,
         max_length=256,
-        padding="max_length",
+        padding=True,
         truncation=True,
-        return_tensors="jax",
+        return_tensors="pt",  # PyTorch tensors
     )
-
-    input_ids = inputs.input_ids
-    attention_mask = inputs.attention_mask
 
     output_ids = model.generate(
-        input_ids=input_ids, attention_mask=attention_mask, **generation_kwargs
+        input_ids=encodings.input_ids,
+        attention_mask=encodings.attention_mask,
+        **generation_kwargs,
     )
-    generated = output_ids.sequences
-    generated_recipe = target_postprocessing(
-        tokenizer.batch_decode(generated, skip_special_tokens=False),
-        special_tokens,
-    )
+    decoded = tokenizer.batch_decode(output_ids, skip_special_tokens=False)
+    generated_recipe = target_postprocessing(decoded, special_tokens)
     return generated_recipe
 
 
@@ -73,7 +70,6 @@ def make_recipe(ingredients: str) -> str:
     generated_list = generation_function(ingredients)
     text = generated_list[0]
 
-    # Parse into TITLE / INGREDIENTS / DIRECTIONS like your script
     sections = text.split("\n")
     headline = ""
     lines = []
@@ -93,6 +89,9 @@ def make_recipe(ingredients: str) -> str:
             section = section.replace("directions:", "")
             headline = "DIRECTIONS"
 
+        if not headline:
+            continue
+
         if headline == "TITLE":
             lines.append(f"[{headline}]: {section.strip().capitalize()}")
         else:
@@ -103,6 +102,9 @@ def make_recipe(ingredients: str) -> str:
             ]
             lines.append(f"[{headline}]:")
             lines.extend(section_info)
+
+    if not lines:
+        return "No recipe could be generated. Please try different ingredients."
 
     return "\n".join(lines)
 
@@ -132,3 +134,4 @@ with gr.Blocks(title="AI Recipe Generator") as demo:
 
 if __name__ == "__main__":
     demo.launch()
+    
