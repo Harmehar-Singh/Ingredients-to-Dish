@@ -1,0 +1,11 @@
+pytest
+pytest-cov
+pylint
+black
+ipython
+gradio
+transformers
+flax
+jax
+jaxlib
+tensorflow
