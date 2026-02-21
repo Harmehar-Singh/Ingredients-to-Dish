@@ -20,4 +20,4 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git push https://HarryS1981:${HF_TOKEN}@huggingface.co/spaces/HarryS1981/Ingredients-to-Dish main
+          git push --force https://HarryS1981:${HF_TOKEN}@huggingface.co/spaces/HarryS1981/Ingredients-to-Dish main
